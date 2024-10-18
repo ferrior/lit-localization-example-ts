@@ -1,6 +1,6 @@
-import { html, LitElement, css } from 'lit';
+import { html, LitElement, css, TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import IntlMessageFormat from 'intl-messageformat';
+import IntlMessageFormat, { FormatXMLElementFn } from 'intl-messageformat';
 import { createIntl, createIntlCache } from '@formatjs/intl';
 import enMessages from '../locales/en.json';
 import frMessages from '../locales/fr.json';
@@ -65,26 +65,42 @@ class MyApp extends LitElement {
     const message = intl.formatMessage(
       {
         id: 'greeting',
-        defaultMessage: 'Hello, {name}! Welcome to {place}!',
+        defaultMessage: '<b>Hello</b>, {name}! Welcome to {place}!',
         description: 'Greeting to the user',
       },
       {
-        name: this.name,
-        place: this.place,
-      },
-      // {
-      // //b: (content) => html`<b>${content}</b>`,
-      // name: html`<b>${this.name}</b>`,
-      // place: html`<b>${this.place}</b>`,
-      // },
+        b: (content) => html`<b>${content}</b>`,
+        name: html`${this.name}`,
+        place: html`${this.place}`,
+      } as Record<string, any>, //TODO:: handle type error
     );
     return message;
   }
 
+  private formatMessage(
+    descriptor: { id: string; defaultMessage: string },
+    values: Record<
+      string,
+      string | number | TemplateResult | FormatXMLElementFn<TemplateResult>
+    > = {},
+  ): string {
+    const { defaultMessage } = descriptor;
+    const messageFormatter = new IntlMessageFormat(defaultMessage, 'en');
+    return messageFormatter.format(values) as string;
+  }
+
   render() {
     this.updateIntl();
+    const nameTemplate = html`<strong>${this.name}</strong>`;
+
+    const message = this.formatMessage(
+      { id: 'welcome', defaultMessage: '<b>Welcome</b>, {name}!' },
+      { name: nameTemplate, b: (content) => html`<b>${content}</b>` },
+    );
+
     return html`
       <div>
+        <p>${message}</p>
         <p>${this.renderMessage()}</p>
         <button @click=${() => this.switchLanguage('fr')}>
           Switch to French
